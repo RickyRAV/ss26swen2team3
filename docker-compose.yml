@@ -1,0 +1,79 @@
+name: tourplanner-dev
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tourplanner}
+      POSTGRES_USER: ${POSTGRES_USER:-tourplanner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tourplanner_dev}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tourplanner}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./apps/api
+      dockerfile: TourPlanner.Api/Dockerfile
+      target: development
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5000
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB:-tourplanner};Username=${POSTGRES_USER:-tourplanner};Password=${POSTGRES_PASSWORD:-tourplanner_dev}"
+      Jwt__Secret: ${JWT_SECRET:-dev-secret-key-minimum-32-characters-long!!}
+      Jwt__Issuer: ${JWT_ISSUER:-TourPlanner}
+      Jwt__Audience: ${JWT_AUDIENCE:-TourPlannerUsers}
+      Jwt__AccessTokenExpiryMinutes: ${JWT_ACCESS_TOKEN_EXPIRY_MINUTES:-15}
+      Jwt__RefreshTokenExpiryDays: ${JWT_REFRESH_TOKEN_EXPIRY_DAYS:-7}
+      Ors__ApiKey: ${ORS_API_KEY:-}
+      Images__BasePath: /app/images
+    volumes:
+      - ./apps/api:/app
+      - ~/.nuget:/root/.nuget
+      - tour-images:/app/images
+    depends_on:
+      db:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./apps/api
+          target: /app
+          ignore:
+            - "**/bin/"
+            - "**/obj/"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: development
+    restart: unless-stopped
+    environment:
+      API_PROXY_TARGET: http://backend:5000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./apps/web:/repo/apps/web
+      - /repo/apps/web/node_modules
+    depends_on:
+      - backend
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/web/src
+          target: /repo/apps/web/src
+        - action: rebuild
+          path: ./apps/web/package.json
+
+volumes:
+  pgdata:
+  tour-images:

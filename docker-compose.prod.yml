@@ -1,0 +1,78 @@
+name: tourplanner-prod
+
+# Routing: Coolify's Traefik exposes only the frontend container via SERVICE_FQDN_FRONTEND.
+# The frontend nginx proxies /api/* to the backend container over the internal network.
+# This avoids split-domain Traefik routing and works identically for PR previews.
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tourplanner}
+      POSTGRES_USER: ${POSTGRES_USER:-tourplanner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tourplanner_dev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./apps/api
+      dockerfile: TourPlanner.Api/Dockerfile
+      target: production
+    restart: always
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5000
+      POSTGRES_HOST: ${SERVICE_NAME_DB:-db}
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-tourplanner}
+      POSTGRES_USER: ${POSTGRES_USER:-tourplanner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tourplanner_dev}
+      ConnectionStrings__DefaultConnection: "Host=${SERVICE_NAME_DB:-db};Port=5432;Database=${POSTGRES_DB:-tourplanner};Username=${POSTGRES_USER:-tourplanner};Password=${POSTGRES_PASSWORD:-tourplanner_dev}"
+      Jwt__Secret: ${JWT_SECRET:-dev-secret-key-minimum-32-characters-long!!}
+      Jwt__Issuer: ${JWT_ISSUER:-TourPlanner}
+      Jwt__Audience: ${JWT_AUDIENCE:-TourPlannerUsers}
+      Jwt__AccessTokenExpiryMinutes: ${JWT_ACCESS_TOKEN_EXPIRY_MINUTES:-15}
+      Jwt__RefreshTokenExpiryDays: ${JWT_REFRESH_TOKEN_EXPIRY_DAYS:-7}
+      Ors__ApiKey: ${ORS_API_KEY:-}
+      Images__BasePath: /app/images
+      Swagger__Enabled: true
+    volumes:
+      - tour-images:/app/images
+    networks:
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: production
+    restart: always
+    labels:
+      traefik.docker.network: coolify
+    networks:
+      - internal
+      - coolify
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  tour-images:
+
+networks:
+  internal:
+  coolify:
+    external: true
+    name: coolify
