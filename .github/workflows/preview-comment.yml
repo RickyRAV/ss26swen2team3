@@ -1,0 +1,36 @@
+name: PR Preview Comment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Wait for Coolify to start preview deployment
+        run: sleep 150
+      - name: Post preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request.number;
+            const url = `https://pr-${pr}-tourplanner.w11core.cc`;
+            const body = `🚀 **Preview:** ${url}\n\n_Deployed by Coolify — takes ~2 min to be ready after this PR is updated._`;
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: pr
+            });
+            const existing = comments.data.find(c => c.body.startsWith('🚀 **Preview:**'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                comment_id: existing.id, body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: pr, body
+              });
+            }

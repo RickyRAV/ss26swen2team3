@@ -1,0 +1,74 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Turbo
+.turbo/
+
+# .NET
+apps/api/**/bin/
+apps/api/**/obj/
+backend/**/*.user
+backend/**/*.suo
+backend/**/*.vs/
+backend/.vs/
+apps/api/**/appsettings.Development.json
+*.nupkg
+
+# Test results
+backend/**/TestResults/
+coverage/
+
+# Docker
+.docker-data/
+
+# Logs
+logs/
+*.log
+
+# Images (runtime storage)
+backend/images/
+
+# Agent skill dirs — only .claude/skills/, .github/, and skills-lock.json are committed
+.agents/
+skills/
+.codebuddy/
+.commandcode/
+.continue/
+.crush/
+.factory/
+.goose/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.windsurf/
+.zencoder/
