@@ -1,0 +1,564 @@
+{
+  "info": {
+    "_postman_id": "tourplanner-v1",
+    "name": "TourPlanner API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseURL",  "value": "http://localhost:5173", "type": "default" },
+    { "key": "token",    "value": "", "type": "string" },
+    { "key": "userId",   "value": "", "type": "string" },
+    { "key": "email",    "value": "", "type": "string" },
+    { "key": "tourId",   "value": "", "type": "string" },
+    { "key": "logId",    "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Register (generates unique user)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const ts = new Date().getTime();",
+                  "pm.collectionVariables.set('email', 'test_' + ts + '@tourplanner.dev');",
+                  "pm.collectionVariables.set('password', 'Test' + ts + '!');",
+                  "pm.collectionVariables.set('userName', 'tester_' + ts);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.test('Has accessToken', () => pm.expect(d.accessToken).to.be.a('string'));",
+                  "if (d.accessToken) {",
+                  "    pm.collectionVariables.set('token', d.accessToken);",
+                  "    pm.collectionVariables.set('userId', d.userId);",
+                  "    pm.collectionVariables.set('email', d.email);",
+                  "    console.log('Registered & token captured');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"userName\": \"{{userName}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/auth/register",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login (saves token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.test('Has accessToken', () => pm.expect(d.accessToken).to.be.a('string'));",
+                  "if (d.accessToken) {",
+                  "    pm.collectionVariables.set('token', d.accessToken);",
+                  "    pm.collectionVariables.set('userId', d.userId);",
+                  "    console.log('Logged in, token: ' + d.accessToken.substring(0,15) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/auth/login",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "if (d.accessToken) pm.collectionVariables.set('token', d.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/auth/refresh",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "auth", "refresh"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/auth/logout",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "auth", "logout"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Tours",
+      "item": [
+        {
+          "name": "Create Tour (saves tourId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const d = pm.response.json();",
+                  "pm.test('Has id', () => pm.expect(d.id).to.be.a('string'));",
+                  "pm.test('Name matches', () => pm.expect(d.name).to.eql('Vienna Forest Hike'));",
+                  "pm.test('Has computed popularity', () => pm.expect(d.popularity).to.be.a('number'));",
+                  "pm.test('Has computed childFriendliness', () => pm.expect(d.childFriendliness).to.be.a('string'));",
+                  "if (d.id) {",
+                  "    pm.collectionVariables.set('tourId', d.id);",
+                  "    console.log('Tour created:', d.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vienna Forest Hike\",\n  \"description\": \"A scenic route through the Vienna Woods.\",\n  \"from\": \"Vienna\",\n  \"to\": \"Baden\",\n  \"transportType\": \"Hiking\"\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tours",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "tours"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Tours",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tours",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "tours"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tour by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.test('ID matches', () => pm.expect(d.id).to.eql(pm.collectionVariables.get('tourId')));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tours/{{tourId}}",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "tours", "{{tourId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Tours",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const results = pm.response.json();",
+                  "pm.test('Returns array', () => pm.expect(results).to.be.an('array'));",
+                  "pm.test('Search results contain query term', () => {",
+                  "    if (results.length > 0) {",
+                  "        const names = results.map(t => t.name.toLowerCase());",
+                  "        pm.expect(names.some(n => n.includes('vienna'))).to.be.true;",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tours?q=Vienna",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "tours"],
+              "query": [{ "key": "q", "value": "Vienna" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Tour",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.test('Name updated', () => pm.expect(d.name).to.eql('Vienna Forest Hike (Updated)'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vienna Forest Hike (Updated)\",\n  \"description\": \"Updated description.\",\n  \"from\": \"Vienna\",\n  \"to\": \"Baden\",\n  \"transportType\": \"Hiking\"\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tours/{{tourId}}",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "tours", "{{tourId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validation — missing name returns 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 on missing name', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"from\": \"Vienna\",\n  \"to\": \"Graz\",\n  \"transportType\": \"Car\"\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tours",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "tours"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Tour Logs",
+      "item": [
+        {
+          "name": "Create Tour Log (saves logId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const d = pm.response.json();",
+                  "pm.test('Has id', () => pm.expect(d.id).to.be.a('string'));",
+                  "pm.test('Has required attributes', () => {",
+                  "    pm.expect(d.difficulty).to.be.a('string');",
+                  "    pm.expect(d.rating).to.be.a('string');",
+                  "    pm.expect(d.totalDistanceKm).to.be.a('number');",
+                  "    pm.expect(d.totalTimeSeconds).to.be.a('number');",
+                  "});",
+                  "if (d.id) {",
+                  "    pm.collectionVariables.set('logId', d.id);",
+                  "    console.log('Log created:', d.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dateTime\": \"2026-04-11T10:00:00Z\",\n  \"comment\": \"Great conditions, trail was dry.\",\n  \"difficulty\": \"Easy\",\n  \"totalDistanceKm\": 12.4,\n  \"totalTimeSeconds\": 9600,\n  \"rating\": \"Four\"\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tours/{{tourId}}/logs",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "tours", "{{tourId}}", "logs"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Logs for Tour",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array with at least 1 log', () => {",
+                  "    const logs = pm.response.json();",
+                  "    pm.expect(logs).to.be.an('array').with.lengthOf.at.least(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tours/{{tourId}}/logs",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "tours", "{{tourId}}", "logs"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Tour Log",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json();",
+                  "pm.test('Comment updated', () => pm.expect(d.comment).to.eql('Updated comment.'));",
+                  "pm.test('Difficulty updated', () => pm.expect(d.difficulty).to.eql('Medium'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dateTime\": \"2026-04-11T10:00:00Z\",\n  \"comment\": \"Updated comment.\",\n  \"difficulty\": \"Medium\",\n  \"totalDistanceKm\": 13.1,\n  \"totalTimeSeconds\": 10200,\n  \"rating\": \"Three\"\n}"
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tours/{{tourId}}/logs/{{logId}}",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "tours", "{{tourId}}", "logs", "{{logId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tour Popularity updates after log creation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const tour = pm.response.json();",
+                  "pm.test('Popularity >= 1 after log was added', () => pm.expect(tour.popularity).to.be.at.least(1));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tours/{{tourId}}",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "tours", "{{tourId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Auth — access control",
+      "item": [
+        {
+          "name": "Unauthenticated request returns 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401 without token', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tours",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "tours"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Cleanup",
+      "item": [
+        {
+          "name": "Delete Tour Log",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tours/{{tourId}}/logs/{{logId}}",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "tours", "{{tourId}}", "logs", "{{logId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Tour",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tours/{{tourId}}",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "tours", "{{tourId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
