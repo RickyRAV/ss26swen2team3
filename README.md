@@ -4,6 +4,8 @@ Tour planning web application: plan, track, and manage hiking, cycling, running 
 
 **Stack**: React (Vite + TanStack) · C# ASP.NET 8 · PostgreSQL · Docker
 
+**Repo**: https://github.com/RickyRAV/ss26swen2team3
+
 **Live**: https://tourplanner.w11core.cc · **API**: https://tourplanner.w11core.cc/api/v1 · **Swagger**: https://tourplanner.w11core.cc/api/v1/swagger
 
 PR previews are deployed automatically to `https://pr-{N}.tourplanner.w11core.cc` when a pull request is opened.
@@ -19,15 +21,15 @@ docker compose up
 ```
 
 - Frontend: http://localhost:5173
-- API:      http://localhost:5173/api/v1
-- Swagger:  http://localhost:5173/api/v1/swagger
+- API: http://localhost:5173/api/v1
+- Swagger: http://localhost:5173/api/v1/swagger
 
 That's it. No local .NET or Node required.
 
 On first start the backend automatically runs EF Core migrations and seeds demo data:
 
 | Field    | Value                  |
-|----------|------------------------|
+| -------- | ---------------------- |
 | Email    | `demo@tourplanner.dev` |
 | Password | `Demo123!`             |
 
@@ -37,12 +39,12 @@ The seed includes 4 tours (hiking, cycling, running, car) and 7 tour logs — en
 
 ### Prerequisites
 
-| Tool | Version | Install |
-|---|---|---|
-| Docker Desktop | latest | https://docs.docker.com/get-docker/ |
-| Git | any | https://git-scm.com |
-| Node.js + pnpm | Node 20+, pnpm 9+ | `npm i -g pnpm` |
-| .NET SDK | 8.0 | https://dotnet.microsoft.com/download/dotnet/8 |
+| Tool           | Version           | Install                                        |
+| -------------- | ----------------- | ---------------------------------------------- |
+| Docker Desktop | latest            | https://docs.docker.com/get-docker/            |
+| Git            | any               | https://git-scm.com                            |
+| Node.js + pnpm | Node 20+, pnpm 9+ | `npm i -g pnpm`                                |
+| .NET SDK       | 8.0               | https://dotnet.microsoft.com/download/dotnet/8 |
 
 Node and .NET are only needed if you work outside Docker (migrations, IDE tooling). For running the app, Docker is sufficient.
 
@@ -152,13 +154,13 @@ pnpm build
 
 ### Common issues
 
-| Problem | Fix |
-|---|---|
-| `docker compose up` fails on first run | Run it again — DB health check occasionally races |
-| Frontend shows "Failed to fetch" | Backend isn't up yet, wait ~10s then refresh |
+| Problem                                        | Fix                                                          |
+| ---------------------------------------------- | ------------------------------------------------------------ |
+| `docker compose up` fails on first run         | Run it again — DB health check occasionally races            |
+| Frontend shows "Failed to fetch"               | Backend isn't up yet, wait ~10s then refresh                 |
 | `dotnet build` fails with missing GlobalUsings | Run `dotnet restore` first, then `dotnet build --no-restore` |
-| Port 5432 already in use | Stop local Postgres: `brew services stop postgresql` |
-| `routeTree.gen.ts` not found | Run `pnpm build` once in `apps/web/` to generate it |
+| Port 5432 already in use                       | Stop local Postgres: `brew services stop postgresql`         |
+| `routeTree.gen.ts` not found                   | Run `pnpm build` once in `apps/web/` to generate it          |
 
 ### Useful commands
 
