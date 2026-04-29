@@ -1,21 +1,20 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using TourPlanner.BL.Services;
 using TourPlanner.DAL;
 using TourPlanner.Models;
 using TourPlanner.Models.Enums;
 
 namespace TourPlanner.Api;
 
-/// <summary>
-/// Seeds the database with demo data for local development.
-/// Only runs when the DB is empty — safe to call on every startup.
-/// Demo credentials: demo@tourplanner.dev / Demo123!
-/// </summary>
 public static class DataSeeder
 {
     public static async Task SeedAsync(IServiceProvider services)
     {
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var db = services.GetRequiredService<TourPlannerDbContext>();
+        var tourService = services.GetRequiredService<ITourService>();
 
         if (db.Tours.Any()) return;
 
@@ -40,69 +39,49 @@ public static class DataSeeder
         {
             new()
             {
-                Id = Guid.NewGuid(),
                 UserId = user.Id,
                 Name = "Wienerwald Ridge Hike",
                 Description = "A classic day hike through the Vienna Woods with panoramic views over the city.",
-                From = "Vienna, Hütteldorf",
-                To = "Klosterneuburg",
+                From = "Hütteldorf, Vienna, Austria",
+                To = "Klosterneuburg, Austria",
                 TransportType = TransportType.Hiking,
-                Distance = 18.4,
-                EstimatedTimeSeconds = 18000,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
-                Id = Guid.NewGuid(),
                 UserId = user.Id,
                 Name = "Danube Cycle Path",
                 Description = "Flat riverside cycling along the Donauradweg — great for a relaxed weekend ride.",
-                From = "Vienna, Reichsbrücke",
-                To = "Krems an der Donau",
+                From = "Reichsbrücke, Vienna, Austria",
+                To = "Krems an der Donau, Austria",
                 TransportType = TransportType.Bicycle,
-                Distance = 82.1,
-                EstimatedTimeSeconds = 14400,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
-                Id = Guid.NewGuid(),
                 UserId = user.Id,
                 Name = "Prater Morning Run",
                 Description = "An easy flat run along the Hauptallee in the Prater. Perfect for a morning session.",
-                From = "Vienna, Praterstern",
-                To = "Vienna, Lusthaus",
+                From = "Praterstern, Vienna, Austria",
+                To = "Lusthaus, Vienna, Austria",
                 TransportType = TransportType.Running,
-                Distance = 4.7,
-                EstimatedTimeSeconds = 1500,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
-                Id = Guid.NewGuid(),
                 UserId = user.Id,
                 Name = "Salzkammergut Lake District",
                 Description = "A multi-day road trip through Austria's lake district — Hallstatt, Wolfgangsee, Traunsee.",
-                From = "Vienna",
-                To = "Salzburg",
+                From = "Vienna, Austria",
+                To = "Salzburg, Austria",
                 TransportType = TransportType.Car,
-                Distance = 310.0,
-                EstimatedTimeSeconds = 28800,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
             },
         };
 
-        db.Tours.AddRange(tours);
+        foreach (var tour in tours)
+            await tourService.CreateAsync(tour);
 
         var logs = new List<TourLog>
         {
             new()
             {
-                Id = Guid.NewGuid(),
                 TourId = tours[0].Id,
                 UserId = user.Id,
                 DateTime = DateTime.UtcNow.AddDays(-14),
@@ -111,12 +90,9 @@ public static class DataSeeder
                 TotalDistanceKm = 18.4,
                 TotalTimeSeconds = 19200,
                 Rating = Rating.Four,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
-                Id = Guid.NewGuid(),
                 TourId = tours[0].Id,
                 UserId = user.Id,
                 DateTime = DateTime.UtcNow.AddDays(-60),
@@ -125,12 +101,9 @@ public static class DataSeeder
                 TotalDistanceKm = 18.4,
                 TotalTimeSeconds = 21600,
                 Rating = Rating.Five,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
-                Id = Guid.NewGuid(),
                 TourId = tours[1].Id,
                 UserId = user.Id,
                 DateTime = DateTime.UtcNow.AddDays(-7),
@@ -139,12 +112,9 @@ public static class DataSeeder
                 TotalDistanceKm = 82.1,
                 TotalTimeSeconds = 13500,
                 Rating = Rating.Five,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
-                Id = Guid.NewGuid(),
                 TourId = tours[1].Id,
                 UserId = user.Id,
                 DateTime = DateTime.UtcNow.AddDays(-45),
@@ -153,12 +123,9 @@ public static class DataSeeder
                 TotalDistanceKm = 82.1,
                 TotalTimeSeconds = 16200,
                 Rating = Rating.Three,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
-                Id = Guid.NewGuid(),
                 TourId = tours[2].Id,
                 UserId = user.Id,
                 DateTime = DateTime.UtcNow.AddDays(-3),
@@ -167,12 +134,9 @@ public static class DataSeeder
                 TotalDistanceKm = 4.7,
                 TotalTimeSeconds = 1380,
                 Rating = Rating.Four,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
-                Id = Guid.NewGuid(),
                 TourId = tours[2].Id,
                 UserId = user.Id,
                 DateTime = DateTime.UtcNow.AddDays(-10),
@@ -181,12 +145,9 @@ public static class DataSeeder
                 TotalDistanceKm = 9.4,
                 TotalTimeSeconds = 2820,
                 Rating = Rating.Four,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
             },
             new()
             {
-                Id = Guid.NewGuid(),
                 TourId = tours[3].Id,
                 UserId = user.Id,
                 DateTime = DateTime.UtcNow.AddDays(-30),
@@ -195,12 +156,32 @@ public static class DataSeeder
                 TotalDistanceKm = 310.0,
                 TotalTimeSeconds = 30600,
                 Rating = Rating.Four,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
             },
         };
 
         db.TourLogs.AddRange(logs);
         await db.SaveChangesAsync();
+    }
+
+    public static async Task BackfillRoutesAsync(IServiceProvider services)
+    {
+        var db = services.GetRequiredService<TourPlannerDbContext>();
+        var ors = services.GetRequiredService<IOrsService>();
+        var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("RouteBackfill");
+
+        var routeless = await db.Tours
+            .Where(t => t.RouteInformation == null && t.From != "" && t.To != "")
+            .ToListAsync();
+        if (routeless.Count == 0) return;
+
+        logger.LogInformation("Backfilling routes for {Count} tour(s) missing route data.", routeless.Count);
+
+        var filled = 0;
+        foreach (var tour in routeless)
+            if (await RouteEnricher.EnrichAsync(tour, ors, logger))
+                filled++;
+
+        if (filled > 0) await db.SaveChangesAsync();
+        logger.LogInformation("Route backfill complete: {Filled}/{Total} filled.", filled, routeless.Count);
     }
 }

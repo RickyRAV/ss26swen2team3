@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -25,18 +26,34 @@ public class OrsService : IOrsService
 
     public async Task<RouteResult> GetRouteAsync(string from, string to, string profile, CancellationToken ct = default)
     {
-        var fromCoord = await GeocodeAsync(from, ct);
-        var toCoord = await GeocodeAsync(to, ct);
-
-        // ORS directions uses [lon, lat] order (GeoJSON)
-        var body = new
+        // ORS calls can fail transiently (rate limits, cold-start networking). Retry a few times.
+        const int maxAttempts = 3;
+        for (var attempt = 1; ; attempt++)
         {
-            coordinates = new[]
+            try
             {
-                new[] { fromCoord[1], fromCoord[0] },
-                new[] { toCoord[1], toCoord[0] }
+                return await FetchRouteAsync(from, to, profile, ct);
             }
-        };
+            catch (Exception ex) when (attempt < maxAttempts && ex is not OperationCanceledException)
+            {
+                _logger.LogWarning("ORS route attempt {Attempt}/{Max} failed ({Message}); retrying…",
+                    attempt, maxAttempts, ex.Message);
+                await Task.Delay(TimeSpan.FromMilliseconds(400 * attempt), ct);
+            }
+        }
+    }
+
+    private async Task<RouteResult> FetchRouteAsync(string from, string to, string profile, CancellationToken ct)
+    {
+        // Both return raw GeoJSON [lon, lat] — no swap needed before sending to ORS
+        var fromLonLat = await GeocodeAsync(from, ct);
+        var toLonLat   = await GeocodeAsync(to, ct);
+
+        _logger.LogInformation("Geocoded '{From}' → lon={FLon} lat={FLat}", from, fromLonLat[0], fromLonLat[1]);
+        _logger.LogInformation("Geocoded '{To}'   → lon={TLon} lat={TLat}", to,   toLonLat[0],   toLonLat[1]);
+
+        // ORS directions body: elevation:true adds a 3rd element [lon, lat, elevation_m] per coord
+        var body = new { coordinates = new[] { fromLonLat, toLonLat }, elevation = true };
 
         using var req = new HttpRequestMessage(
             HttpMethod.Post,
@@ -46,33 +63,51 @@ public class OrsService : IOrsService
         };
 
         var res = await _http.SendAsync(req, ct);
-        res.EnsureSuccessStatusCode();
+        if (!res.IsSuccessStatusCode)
+        {
+            var errorBody = await res.Content.ReadAsStringAsync(ct);
+            _logger.LogError("ORS directions {Status}: {Body}", (int)res.StatusCode, errorBody);
+            res.EnsureSuccessStatusCode();
+        }
 
         var data = await res.Content.ReadFromJsonAsync<OrsDirectionsResponse>(cancellationToken: ct)
             ?? throw new InvalidOperationException("Empty directions response from ORS");
 
         var feature = data.Features[0];
-        var coords = feature.Geometry.Coordinates;
-        var summary = feature.Properties.Summary;
+        var summary  = feature.Properties.Summary;
 
-        _logger.LogInformation("ORS route fetched: {From} → {To}, {Distance:F0} m, {Duration:F0} s",
-            from, to, summary.Distance, summary.Duration);
+        // ORS returns GeoJSON [lon, lat] or [lon, lat, elevation_m]; convert to [lat, lon] for Leaflet
+        var rawCoords = feature.Geometry.Coordinates;
+        var latLonCoords = rawCoords.Select(c => new double[] { c[1], c[0] }).ToArray();
 
-        return new RouteResult(coords, summary.Distance, summary.Duration);
+        // Extract elevations from 3rd element when present (elevation:true was requested)
+        var elevations = rawCoords.Length > 0 && rawCoords[0].Length >= 3
+            ? rawCoords.Select(c => c[2]).ToArray()
+            : Array.Empty<double>();
+
+        _logger.LogInformation(
+            "ORS route fetched: {From} → {To}, {Distance:F0} m, {Duration:F0} s, {ElevPts} elevation points",
+            from, to, summary.Distance, summary.Duration, elevations.Length);
+
+        return new RouteResult(latLonCoords, elevations, summary.Distance, summary.Duration);
     }
 
     private async Task<double[]> GeocodeAsync(string text, CancellationToken ct)
     {
-        var url = $"{_opts.BaseUrl}/geocode/search?api_key={_opts.ApiKey}&text={Uri.EscapeDataString(text)}&size=1";
+        var url = $"{_opts.BaseUrl}/geocode/search" +
+                  $"?api_key={_opts.ApiKey}" +
+                  $"&text={Uri.EscapeDataString(text)}" +
+                  $"&size=1" +
+                  $"&focus.point.lat=48.2&focus.point.lon=16.37";
+
         var data = await _http.GetFromJsonAsync<OrsGeocodeResponse>(url, ct)
             ?? throw new InvalidOperationException($"Empty geocode response for '{text}'");
 
         if (data.Features.Length == 0)
             throw new InvalidOperationException($"No geocode result for '{text}'");
 
-        // GeoJSON coordinates are [lon, lat] — return as [lat, lon] for consistency
-        var c = data.Features[0].Geometry.Coordinates;
-        return [c[1], c[0]];
+        // Return raw GeoJSON [lon, lat] — no swap here
+        return data.Features[0].Geometry.Coordinates;
     }
 
     private sealed class OrsGeocodeResponse

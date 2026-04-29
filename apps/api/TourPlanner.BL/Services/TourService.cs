@@ -8,17 +8,20 @@ namespace TourPlanner.BL.Services;
 public class TourService : ITourService
 {
     private readonly ITourRepository _tourRepository;
+    private readonly IOrsService _ors;
     private readonly ILogger<TourService> _logger;
 
-    public TourService(ITourRepository tourRepository, ILogger<TourService> logger)
+    public TourService(ITourRepository tourRepository, IOrsService ors, ILogger<TourService> logger)
     {
         _tourRepository = tourRepository;
+        _ors = ors;
         _logger = logger;
     }
 
     public async Task<IEnumerable<Tour>> GetAllAsync(string userId, string? searchQuery = null, CancellationToken ct = default)
     {
         _logger.LogInformation("Fetching tours for user {UserId}, search: {Search}", userId, searchQuery ?? "(none)");
+
         return await _tourRepository.GetAllAsync(userId, searchQuery, ct);
     }
 
@@ -39,6 +42,8 @@ public class TourService : ITourService
         if (exists)
             throw new BusinessLogicException($"A tour named \"{tour.Name}\" already exists.");
 
+        await RouteEnricher.EnrichAsync(tour, _ors, _logger, ct);
+
         _logger.LogInformation("Creating tour '{Name}' for user {UserId}", tour.Name, tour.UserId);
         return await _tourRepository.CreateAsync(tour, ct);
     }
@@ -48,17 +53,22 @@ public class TourService : ITourService
         var existing = await _tourRepository.GetByIdAsync(id, userId, ct);
         if (existing is null) throw new TourNotFoundException(id);
 
+        // Recompute the route only when the inputs that determine it actually change.
+        var routeChanged = existing.From != updates.From
+            || existing.To != updates.To
+            || existing.TransportType != updates.TransportType;
+
         existing.Name = updates.Name;
         existing.Description = updates.Description;
         existing.From = updates.From;
         existing.To = updates.To;
         existing.TransportType = updates.TransportType;
-        existing.Distance = updates.Distance ?? existing.Distance;
-        existing.EstimatedTimeSeconds = updates.EstimatedTimeSeconds ?? existing.EstimatedTimeSeconds;
-        existing.RouteInformation = updates.RouteInformation ?? existing.RouteInformation;
         existing.ImagePath = updates.ImagePath ?? existing.ImagePath;
 
-        _logger.LogInformation("Updating tour {TourId}", id);
+        if (routeChanged)
+            await RouteEnricher.EnrichAsync(existing, _ors, _logger, ct);
+
+        _logger.LogInformation("Updating tour {TourId} (route recomputed: {RouteChanged})", id, routeChanged);
         return await _tourRepository.UpdateAsync(existing, ct);
     }
 

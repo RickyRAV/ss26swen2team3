@@ -26,7 +26,6 @@ public class MapController : ControllerBase
         _ors = ors;
     }
 
-    /// <summary>GET /api/v1/map/route?from=Vienna&amp;to=Salzburg&amp;transportType=Car</summary>
     [HttpGet("route")]
     public async Task<IActionResult> GetRoute(
         [FromQuery] string from,
@@ -40,6 +39,6 @@ public class MapController : ControllerBase
         var profile = ProfileMap.GetValueOrDefault(transportType, "driving-car");
         var result = await _ors.GetRouteAsync(from, to, profile, ct);
 
-        return Ok(new RouteResponse(result.Coordinates, result.DistanceMeters, result.DurationSeconds));
+        return Ok(new RouteResponse(result.Coordinates, result.Elevations, result.DistanceMeters, result.DurationSeconds));
     }
 }

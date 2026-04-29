@@ -2,6 +2,7 @@ namespace TourPlanner.BL.Services;
 
 public record RouteResult(
     IReadOnlyList<double[]> Coordinates,
+    IReadOnlyList<double> Elevations,
     double DistanceMeters,
     double DurationSeconds
 );
