@@ -1,10 +1,7 @@
 import { useEffect } from 'react'
 import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet'
-import { useQuery } from '@tanstack/react-query'
 import L from 'leaflet'
-import { MapPin, Loader2 } from 'lucide-react'
-import { fetchRoute } from '@/api/ors'
-import type { TransportType } from '@/models/tour'
+import { MapPin } from 'lucide-react'
 
 // Leaflet marker icon fix for bundled environments
 const makePin = (color: string) =>
@@ -26,17 +23,6 @@ function FitRoute({ coords }: { coords: [number, number][] }) {
     }
   }, [map, coords])
   return null
-}
-
-function MapSkeleton({ className }: { className?: string }) {
-  return (
-    <div
-      className={`flex flex-col items-center justify-center gap-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-400 ${className ?? 'h-64'}`}
-    >
-      <Loader2 className="h-6 w-6 animate-spin text-stone-300" />
-      <p className="text-xs text-stone-400">Loading route…</p>
-    </div>
-  )
 }
 
 function MapFallback({
@@ -62,53 +48,43 @@ function MapFallback({
         ) : (
           <p className="text-xs mt-1">Select a tour to see the route</p>
         )}
-        <p className="text-xs mt-0.5 text-stone-400">Route could not be loaded</p>
+        <p className="text-xs mt-0.5 text-stone-400">No route available</p>
       </div>
     </div>
   )
 }
 
 interface TourMapProps {
+  coordinates?: [number, number][]
   from?: string
   to?: string
-  transportType?: TransportType
   className?: string
 }
 
-export function TourMap({ from, to, transportType = 'Car', className }: TourMapProps) {
-  const enabled = Boolean(from && to)
+export function TourMap({ coordinates, from, to, className }: TourMapProps) {
+  if (!coordinates || coordinates.length < 2) {
+    return <MapFallback from={from} to={to} className={className} />
+  }
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['ors-route', from, to, transportType],
-    queryFn: () => fetchRoute(from!, to!, transportType),
-    enabled,
-    staleTime: 10 * 60 * 1000, // 10 min — routes don't change
-    retry: 1,
-  })
-
-  if (!enabled) return <MapFallback from={from} to={to} className={className} />
-  if (isLoading) return <MapSkeleton className={className} />
-  if (isError || !data) return <MapFallback from={from} to={to} className={className} />
-
-  const coords = data.coordinates
-  const center = coords[Math.floor(coords.length / 2)]
+  const center = coordinates[Math.floor(coordinates.length / 2)]
 
   return (
-    <MapContainer
-      center={center}
-      zoom={12}
-      scrollWheelZoom={false}
-      className={`rounded-xl overflow-hidden ${className ?? 'h-64'}`}
-      style={{ zIndex: 0 }}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <Marker position={coords[0]} icon={START_ICON} />
-      <Marker position={coords[coords.length - 1]} icon={END_ICON} />
-      <Polyline positions={coords} color="#3d7d3d" weight={4} opacity={0.85} />
-      <FitRoute coords={coords} />
-    </MapContainer>
+    <div className={`rounded-xl overflow-hidden ${className ?? 'h-64'}`} style={{ isolation: 'isolate' }}>
+      <MapContainer
+        center={center}
+        zoom={12}
+        scrollWheelZoom={false}
+        style={{ height: '100%', width: '100%' }}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <Marker position={coordinates[0]} icon={START_ICON} />
+        <Marker position={coordinates[coordinates.length - 1]} icon={END_ICON} />
+        <Polyline positions={coordinates} color="#3d7d3d" weight={4} opacity={0.85} />
+        <FitRoute coords={coordinates} />
+      </MapContainer>
+    </div>
   )
 }

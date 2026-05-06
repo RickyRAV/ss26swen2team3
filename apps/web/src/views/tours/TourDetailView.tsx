@@ -1,6 +1,7 @@
 import { ArrowLeft, MapPin, Clock, Ruler, Users, Baby } from 'lucide-react'
 import { useTourDetailViewModel } from '@/viewmodels/useTourDetailViewModel'
 import { TourMap } from '@/components/TourMap'
+import { ElevationChart } from '@/components/ElevationChart'
 import { Badge } from '@/components/ui/badge'
 import { TourLogListView } from '@/views/tourLogs/TourLogListView'
 import { TRANSPORT_ICONS } from '@/models/tour'
@@ -18,7 +19,7 @@ const CHILD_FRIENDLY_MAP = {
 }
 
 export function TourDetailView({ tourId, onBack }: TourDetailViewProps) {
-  const { tour, isLoading } = useTourDetailViewModel(tourId)
+  const { tour, route, isLoading } = useTourDetailViewModel(tourId)
 
   if (isLoading) {
     return (
@@ -33,7 +34,7 @@ export function TourDetailView({ tourId, onBack }: TourDetailViewProps) {
   const cfInfo = CHILD_FRIENDLY_MAP[tour.childFriendliness]
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-white">
+    <div className="flex-1 flex flex-col overflow-hidden bg-surface">
       <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-stone-100">
         {onBack && (
           <button
@@ -103,8 +104,27 @@ export function TourDetailView({ tourId, onBack }: TourDetailViewProps) {
         {/* Map section */}
         <div className="px-4 sm:px-6 py-4">
           <h3 className="text-sm font-medium text-stone-700 mb-3">Route Map</h3>
-          <TourMap from={tour.from} to={tour.to} transportType={tour.transportType} className="h-48 sm:h-56" />
+          <TourMap
+            coordinates={route?.coordinates}
+            from={tour.from}
+            to={tour.to}
+            className="h-48 sm:h-56"
+          />
         </div>
+
+        {/* Elevation profile */}
+        {route && route.elevations.length >= 2 && (
+          <div className="px-6 pb-4">
+            <h3 className="text-sm font-medium text-stone-700 mb-3">Elevation Profile</h3>
+            <div className="rounded-xl border border-stone-200 bg-surface px-2 py-3">
+              <ElevationChart
+                elevations={route.elevations}
+                distanceMeters={route.distanceMeters}
+                className="h-36"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Tour Logs */}
         <div className="border-t border-stone-100">
