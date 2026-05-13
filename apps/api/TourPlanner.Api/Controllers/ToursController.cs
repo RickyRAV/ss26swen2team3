@@ -15,11 +15,13 @@ public class ToursController : ControllerBase
 {
     private readonly ITourService _tourService;
     private readonly IImageService _imageService;
+    private readonly IImportExportService _importExport;
 
-    public ToursController(ITourService tourService, IImageService imageService)
+    public ToursController(ITourService tourService, IImageService imageService, IImportExportService importExport)
     {
         _tourService = tourService;
         _imageService = imageService;
+        _importExport = importExport;
     }
 
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -111,6 +113,51 @@ public class ToursController : ControllerBase
 
         var updated = await _tourService.UpdateAsync(id, UserId, updates, ct);
         return Ok(MapToDto(updated));
+    }
+
+    [HttpGet("export")]
+    public async Task<ActionResult<ToursExportFile>> Export(CancellationToken ct)
+    {
+        var tours = await _importExport.ExportAsync(UserId, ct);
+        var items = tours.Select(t => new TourExportItem(
+            t.Name, t.Description, t.From, t.To, t.TransportType,
+            t.Distance, t.EstimatedTimeSeconds, t.RouteInformation,
+            t.TourLogs.Select(l => new TourLogExportItem(
+                l.DateTime, l.Comment, l.Difficulty, l.TotalDistanceKm, l.TotalTimeSeconds, l.Rating)).ToList()
+        )).ToList();
+
+        return Ok(new ToursExportFile(DateTime.UtcNow, items.Count, items));
+    }
+
+    [HttpPost("import")]
+    public async Task<ActionResult> Import([FromBody] ToursImportFile request, CancellationToken ct)
+    {
+        if (request?.Tours is null || request.Tours.Count == 0)
+            return BadRequest("The import file contains no tours.");
+
+        var tours = request.Tours.Select(i => new Tour
+        {
+            Name = i.Name ?? string.Empty,
+            Description = i.Description ?? string.Empty,
+            From = i.From ?? string.Empty,
+            To = i.To ?? string.Empty,
+            TransportType = i.TransportType,
+            Distance = i.Distance,
+            EstimatedTimeSeconds = i.EstimatedTimeSeconds,
+            RouteInformation = i.RouteInformation,
+            TourLogs = (i.Logs ?? Array.Empty<TourLogExportItem>()).Select(l => new TourLog
+            {
+                DateTime = l.DateTime,
+                Comment = l.Comment,
+                Difficulty = l.Difficulty,
+                TotalDistanceKm = l.TotalDistanceKm,
+                TotalTimeSeconds = l.TotalTimeSeconds,
+                Rating = l.Rating,
+            }).ToList(),
+        }).ToList();
+
+        var imported = await _importExport.ImportAsync(UserId, tours, ct);
+        return Ok(new { imported });
     }
 
     private static TourDto MapToDto(Tour t) => new(

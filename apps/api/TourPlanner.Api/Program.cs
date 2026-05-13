@@ -95,6 +95,7 @@ try
     builder.Services.AddScoped<ITourLogService, TourLogService>();
     builder.Services.AddScoped<IAuthService, AuthService>();
     builder.Services.AddScoped<IImageService, ImageService>();
+    builder.Services.AddScoped<IImportExportService, ImportExportService>();
     builder.Services.Configure<OrsOptions>(opts =>
     {
         opts.ApiKey = builder.Configuration["ORS_API_KEY"] ?? string.Empty;
@@ -121,6 +122,7 @@ try
         var db = scope.ServiceProvider.GetRequiredService<TourPlannerDbContext>();
         db.Database.Migrate();
         await DataSeeder.SeedAsync(scope.ServiceProvider);
+        await DataSeeder.BackfillRoutesAsync(scope.ServiceProvider);
     }
 
     app.UseSerilogRequestLogging();
