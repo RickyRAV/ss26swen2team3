@@ -29,4 +29,12 @@ export const toursApi = {
     form.append('file', file)
     return apiUpload<Tour>(`/api/v1/tours/${id}/image`, form)
   },
+
+  exportTours: () => apiFetch<unknown>('/api/v1/tours/export'),
+
+  importTours: (data: unknown) =>
+    apiFetch<{ imported: number }>('/api/v1/tours/import', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 }

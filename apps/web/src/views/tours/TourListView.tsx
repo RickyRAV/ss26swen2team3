@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, Search, Pencil, Trash2, MapPin, Clock, Star } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Plus, Search, Pencil, Trash2, MapPin, Clock, Star, Download, Upload } from 'lucide-react'
 import { useTourListViewModel } from '@/viewmodels/useTourListViewModel'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,9 @@ export function TourListView() {
     setSelectedTourId,
     deleteTour,
     isDeletingTour,
+    exportTours,
+    importTours,
+    isImporting,
   } = useTourListViewModel()
 
   const [formOpen, setFormOpen] = useState(false)
@@ -27,19 +30,53 @@ export function TourListView() {
   const [newTourKey, setNewTourKey] = useState(0)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [tourToDelete, setTourToDelete] = useState<Tour | null>(null)
+  const importInputRef = useRef<HTMLInputElement>(null)
 
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      try {
+        const { imported } = await importTours(file)
+        alert(`Imported ${imported} tour${imported === 1 ? '' : 's'}.`)
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'Import failed.')
+      }
+    }
+    if (importInputRef.current) importInputRef.current.value = ''
+  }
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
-      <aside className={`${selectedTourId ? 'hidden' : 'flex'} sm:flex w-full sm:w-80 lg:w-96 flex-shrink-0 border-r border-stone-200 bg-white flex-col`}>
+      <aside className={`${selectedTourId ? 'hidden' : 'flex'} sm:flex w-full sm:w-80 lg:w-96 flex-shrink-0 border-r border-stone-200 bg-surface flex-col`}>
         {/* Header */}
         <div className="p-4 border-b border-stone-100">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-stone-900">My Tours</h2>
-            <Button size="sm" onClick={() => { setEditTour(null); setNewTourKey(k => k + 1); setFormOpen(true) }}>
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">New Tour</span>
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <Button variant="outline" size="sm" onClick={exportTours} title="Export tours to JSON">
+                <Download className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => importInputRef.current?.click()}
+                disabled={isImporting}
+                title="Import tours from JSON"
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={handleImportFile}
+              />
+              <Button size="sm" onClick={() => { setEditTour(null); setNewTourKey(k => k + 1); setFormOpen(true) }}>
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">New Tour</span>
+              </Button>
+            </div>
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
