@@ -1,6 +1,8 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using TourPlanner.DAL.Exceptions;
 using TourPlanner.Models;
+using TourPlanner.Models.Enums;
 
 namespace TourPlanner.DAL.Repositories;
 
@@ -22,22 +24,46 @@ public class TourRepository : ITourRepository
                 .Where(t => t.UserId == userId);
 
             if (!string.IsNullOrWhiteSpace(searchQuery))
-            {
-                var q = searchQuery.ToLower();
-                query = query.Where(t =>
-                    t.Name.ToLower().Contains(q) ||
-                    t.Description.ToLower().Contains(q) ||
-                    t.From.ToLower().Contains(q) ||
-                    t.To.ToLower().Contains(q) ||
-                    t.TourLogs.Any(l => l.Comment.ToLower().Contains(q)));
-            }
+                query = query.Where(BuildSearchPredicate(searchQuery.Trim()));
 
-            return await query.OrderBy(t => t.Name).ToListAsync(ct);
+            return await query
+                .OrderBy(t => t.Name)
+                .ToListAsync(ct);
         }
         catch (Exception ex) when (ex is not DataAccessException)
         {
             throw new DataAccessException("Failed to retrieve tours.", ex);
         }
+    }
+
+    private static Expression<Func<Tour, bool>> BuildSearchPredicate(string q)
+    {
+        var like = $"%{q}%";
+
+        var matchingTransports = Enum.GetValues<TransportType>()
+            .Where(tt => tt.ToString().Contains(q, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        return t =>
+            EF.Functions.ILike(t.Name, like) ||
+            EF.Functions.ILike(t.Description, like) ||
+            EF.Functions.ILike(t.From, like) ||
+            EF.Functions.ILike(t.To, like) ||
+            matchingTransports.Contains(t.TransportType) ||
+            t.TourLogs.Any(l => EF.Functions.ILike(l.Comment, like)) ||
+            // Popularity == TourLogs.Count
+            EF.Functions.ILike(t.TourLogs.Count.ToString(), like) ||
+            EF.Functions.ILike(
+                !t.TourLogs.Any()
+                    ? "notsuitable not suitable"
+                    : t.TourLogs.Average(l => l.Difficulty == Difficulty.Easy ? 1 : l.Difficulty == Difficulty.Medium ? 2 : 3) <= (int)Difficulty.Easy
+                      && t.TourLogs.Average(l => l.TotalDistanceKm) <= 10
+                        ? "verysuitable very suitable"
+                        : t.TourLogs.Average(l => l.Difficulty == Difficulty.Easy ? 1 : l.Difficulty == Difficulty.Medium ? 2 : 3) <= (int)Difficulty.Medium
+                          && t.TourLogs.Average(l => l.TotalDistanceKm) <= 30
+                            ? "suitable"
+                            : "notsuitable not suitable",
+                like);
     }
 
     public async Task<Tour?> GetByIdAsync(Guid id, string userId, CancellationToken ct = default)
