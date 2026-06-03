@@ -127,11 +127,11 @@ export function TourLogListView({ tourId }: TourLogListViewProps) {
       />
 
       <TourLogFormDialog
+        key={editLog?.id ?? `new-${newLogKey}`}
         open={formOpen}
         onOpenChange={(v) => { setFormOpen(v); if (!v) setEditLog(null) }}
         tourId={tourId}
         log={editLog}
-        formKey={newLogKey}
       />
 
       <ConfirmDialog

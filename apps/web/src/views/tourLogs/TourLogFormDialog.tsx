@@ -27,10 +27,9 @@ interface TourLogFormDialogProps {
   onOpenChange: (open: boolean) => void
   tourId: string
   log: TourLog | null
-  formKey?: number
 }
 
-export function TourLogFormDialog({ open, onOpenChange, tourId, log, formKey }: TourLogFormDialogProps) {
+export function TourLogFormDialog({ open, onOpenChange, tourId, log }: TourLogFormDialogProps) {
   const isEditing = !!log
   const { createLog, updateLog, isCreating, isUpdating, createError, updateError } =
     useTourLogFormViewModel(tourId, log?.id)
@@ -71,7 +70,7 @@ export function TourLogFormDialog({ open, onOpenChange, tourId, log, formKey }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent key={log?.id ?? `new-${formKey}`}>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Tour Log' : 'Add Tour Log'}</DialogTitle>
         </DialogHeader>
@@ -191,7 +190,7 @@ export function TourLogFormDialog({ open, onOpenChange, tourId, log, formKey }: 
               <div className="space-y-1.5">
                 <Label>Comment</Label>
                 <textarea
-                  className="w-full min-h-[72px] rounded-md border border-stone-200 bg-white px-3 py-2 text-sm shadow-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-500 placeholder:text-stone-400"
+                  className="w-full min-h-[72px] rounded-md border border-stone-200 bg-surface px-3 py-2 text-sm shadow-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-500 placeholder:text-stone-400"
                   placeholder="How did it go?"
                   value={field.state.value}
                   onBlur={field.handleBlur}
