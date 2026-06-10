@@ -197,7 +197,7 @@ export function TourFormDialog({ open, onOpenChange, tour, formKey }: TourFormDi
               <div className="space-y-1.5">
                 <Label>Description</Label>
                 <textarea
-                  className="w-full min-h-[80px] rounded-md border border-stone-200 bg-white px-3 py-2 text-sm shadow-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-500 placeholder:text-stone-400"
+                  className="w-full min-h-[80px] rounded-md border border-stone-200 bg-surface px-3 py-2 text-sm shadow-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-500 placeholder:text-stone-400"
                   placeholder="A scenic route through the hills…"
                   value={field.state.value}
                   onBlur={field.handleBlur}
@@ -221,7 +221,7 @@ export function TourFormDialog({ open, onOpenChange, tour, formKey }: TourFormDi
                 <button
                   type="button"
                   onClick={clearImage}
-                  className="absolute top-1.5 right-1.5 p-1 rounded-full bg-white/80 hover:bg-white border border-stone-200 text-stone-600"
+                  className="absolute top-1.5 right-1.5 p-1 rounded-full bg-surface/80 hover:bg-surface border border-stone-200 text-stone-600"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>

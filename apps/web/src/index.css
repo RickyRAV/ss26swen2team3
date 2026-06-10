@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Manual (class-based) dark mode: toggling `.dark` on <html> switches the theme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* ─── TourPlanner Design System ─────────────────────────────────────────── */
 
@@ -60,6 +63,45 @@
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
+}
+
+/* ─── Dark theme ───────────────────────────────────────────────────────────────
+   Rather than sprinkling `dark:` variants across ~200 call sites, dark mode
+   redefines the underlying design-token variables. The neutral `stone` ramp is
+   inverted (low shades become dark surfaces, high shades become light text), so
+   every existing `bg-stone-50` / `text-stone-900` / `border-stone-200` adapts
+   automatically. Light brand tints used as fills get dark equivalents, and the
+   semantic tokens (background/surface/border/text) follow because they reference
+   these same variables. */
+.dark {
+  /* Inverted warm-neutral ramp */
+  --color-stone-50:  #1c1917;
+  --color-stone-100: #292524;
+  --color-stone-200: #383431; /* borders: a touch lighter than 100 to stay visible */
+  --color-stone-300: #57534e;
+  --color-stone-400: #6b6660; /* faint text */
+  --color-stone-500: #a8a29e; /* muted text */
+  --color-stone-600: #c4bfb9;
+  --color-stone-700: #e7e5e4;
+  --color-stone-800: #f5f5f4;
+  --color-stone-900: #fafaf9; /* primary text */
+
+  /* Elevated surface (cards, dialogs, inputs) — formerly pure white */
+  --color-surface: #242120;
+
+  /* Light brand / utility tints used as backgrounds → dark equivalents */
+  --color-forest-50: #16261b;
+  --color-trail-50:  #2a1d12;
+  --color-trail-100: #382617;
+  --color-red-50:    #2a1618;
+  --color-red-100:   #3a1c1f;
+  --color-red-200:   #4d2529;
+
+  /* Lift the primary green so buttons and accents stay vivid on dark */
+  --color-forest-600: #3f9457;
+  --color-forest-700: #347a49;
+
+  color-scheme: dark;
 }
 
 /* ─── Base resets ──────────────────────────────────────────────────────────── */
