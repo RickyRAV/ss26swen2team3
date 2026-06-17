@@ -1,4 +1,5 @@
 using Moq;
+using TourPlanner.BL.Services;
 using TourPlanner.DAL.Repositories;
 using TourPlanner.Models;
 
@@ -9,6 +10,17 @@ public static class MockRepositoryFactory
     public static Mock<ITourRepository> TourRepository() => new();
     public static Mock<ITourLogRepository> TourLogRepository() => new();
     public static Mock<IRefreshTokenRepository> RefreshTokenRepository() => new();
+
+    public static Mock<IOrsService> OrsService()
+    {
+        var mock = new Mock<IOrsService>();
+        mock.Setup(o => o.GetRouteAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RouteResult(
+                new List<double[]> { new[] { 48.2, 16.37 }, new[] { 48.4, 15.6 } },
+                new List<double> { 180, 210 },
+                50000, 9000));
+        return mock;
+    }
 
     public static Tour CreateTour(string userId = "user-1", string name = "Test Tour") => new()
     {

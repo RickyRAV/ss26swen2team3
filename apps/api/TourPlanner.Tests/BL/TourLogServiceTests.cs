@@ -95,6 +95,20 @@ public class TourLogServiceTests
     }
 
     [Test]
+    public void CreateAsync_DuplicateDateTime_ThrowsAndDoesNotPersist()
+    {
+        var tour = MockRepositoryFactory.CreateTour(UserId);
+        var log = MockRepositoryFactory.CreateTourLog(tour.Id, UserId);
+        _tourRepoMock.Setup(r => r.GetByIdAsync(log.TourId, UserId, default)).ReturnsAsync(tour);
+        _logRepoMock.Setup(r => r.ExistsForTourAtDateTimeAsync(log.TourId, UserId, log.DateTime, default)).ReturnsAsync(true);
+
+        Assert.ThrowsAsync<BusinessLogicException>(async () => await _service.CreateAsync(log));
+
+        // A duplicate log entry for the same tour and time must not be persisted.
+        _logRepoMock.Verify(r => r.CreateAsync(It.IsAny<TourLog>(), default), Times.Never);
+    }
+
+    [Test]
     public async Task UpdateAsync_ExistingLog_UpdatesFields()
     {
         var log = MockRepositoryFactory.CreateTourLog(userId: UserId);
