@@ -72,3 +72,6 @@ skills/
 .trae/
 .windsurf/
 .zencoder/
+
+# Office temp/lock files
+~$*
