@@ -4,9 +4,9 @@ Tour planning web application: plan, track, and manage hiking, cycling, running 
 
 **Stack**: React (Vite + TanStack) · C# ASP.NET 8 · PostgreSQL · Docker
 
-**Live**: https://swen.w11core.cc · **API**: https://swen.w11core.cc/api/v1 · **Swagger**: https://swen.w11core.cc/api/v1/swagger
+**Live**: https://tourplanner.w11core.cc · **API**: https://tourplanner.w11core.cc/api/v1 · **Swagger**: https://tourplanner.w11core.cc/api/v1/swagger
 
-PR previews are deployed automatically to `https://pr-{N}.swen.w11core.cc` when a pull request is opened.
+PR previews are deployed automatically to `https://pr-{N}.tourplanner.w11core.cc` when a pull request is opened.
 
 ## Quick Start
 
@@ -192,9 +192,9 @@ pnpm dev
 
 ## Project Resources
 
-- Live app: [swen.w11core.cc](https://swen.w11core.cc)
+- Live app: [tourplanner.w11core.cc](https://tourplanner.w11core.cc)
 - Issue board: [plane.w11core.cc](https://plane.w11core.cc)
-- GitHub: [RickyRAV/ss26swen2team3_orig](https://github.com/RickyRAV/ss26swen2team3_orig)
+- GitHub: [RickyRAV/ss26swen2team3](https://github.com/RickyRAV/ss26swen2team3)
 - Main branch: `main`
 - Project documents: `Docs/`
 
