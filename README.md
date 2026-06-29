@@ -2,6 +2,8 @@
 
 Tour planning web application: plan, track, and manage hiking, cycling, running and vacation tours.
 
+**Repository**: https://github.com/RickyRAV/ss26swen2team3
+
 **Stack**: React (Vite + TanStack) · C# ASP.NET 8 · PostgreSQL · Docker
 
 **Live**: https://tourplanner.w11core.cc · **API**: https://tourplanner.w11core.cc/api/v1 · **Swagger**: https://tourplanner.w11core.cc/api/v1/swagger
